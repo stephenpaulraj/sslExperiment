@@ -25,17 +25,24 @@ def SSL_channel(df, period=21):
     df_copy.loc[:, 'sslUp'] = np.round(sslUp, precision)
     df_copy.loc[:, 'sslDown'] = np.round(sslDown, precision)
 
-    crossover_up = (df_copy['sslUp'] > df_copy['sslDown']) & (df_copy['sslUp'].shift(1) < df_copy['sslDown'].shift(1))
     crossover_down = (df_copy['sslUp'] < df_copy['sslDown']) & (df_copy['sslUp'].shift(1) > df_copy['sslDown'].shift(1))
-    df_copy.loc[:, 'crossover_signal'] = np.where(crossover_up, 1, np.where(crossover_down, -1, 0))
+    df_copy.loc[:, 'crossover_signal'] = np.where(crossover_down, 1, 0)
 
-    # Add new columns
-    df_copy['previous_sslUp'] = df_copy['sslUp'].shift(1).where(df_copy['crossover_signal'].isin([1,-1]), 0)
-    df_copy['previous_sslDown'] = df_copy['sslDown'].shift(1).where(df_copy['crossover_signal'].isin([1,-1]), 0)
-    df_copy['current_sslUp'] = df_copy['sslUp'].where(df_copy['crossover_signal'].isin([1,-1]), 0)
-    df_copy['current_sslDown'] = df_copy['sslDown'].where(df_copy['crossover_signal'].isin([1,-1]), 0)
+    df_copy['previous_sslUp_A'] = df_copy['sslUp'].shift(1).where(df_copy['crossover_signal'].isin([1,-1]), 0)
+    df_copy['current_sslDown_B'] = df_copy['sslDown'].where(df_copy['crossover_signal'].isin([1, -1]), 0)
+    df_copy['current_sslUp_C'] = df_copy['sslUp'].where(df_copy['crossover_signal'].isin([1, -1]), 0)
+    df_copy['previous_sslDown_D'] = df_copy['sslDown'].shift(1).where(df_copy['crossover_signal'].isin([1,-1]), 0)
+
+    # Additional calculations for 'status' and 'efficiency'
+    df_copy['status'] = np.where((df_copy['crossover_signal'] == 1) &
+                                  (df_copy['close'].shift(-2) < df_copy['open'].shift(-1)), 1, 0)
+
+    df_copy['efficiency'] = np.where((df_copy['crossover_signal'] == 1) &
+                                      (df_copy['close'] > df_copy['close'].shift(-1)) &
+                                      (df_copy['close'].shift(-1) > df_copy['close'].shift(-2)), 1, 0)
 
     return df_copy
+
 
 
 
